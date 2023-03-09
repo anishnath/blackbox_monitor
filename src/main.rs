@@ -3,18 +3,19 @@ use std::io::{BufRead, BufReader};
 use std::thread;
 use std::time::{Duration, SystemTime};
 
+
 fn main() {
     // Read program intervals from a file
     let intervals = read_intervals_from_file("./program_intervals.txt").unwrap();
 
     // Start a thread for each program
     let mut threads = vec![];
-    for (program, url, method, parameter, interval) in intervals {
+    for (program, url, method, parameter, timeout, interval) in intervals {
         let thread = thread::spawn(move || {
             loop {
                 let start_time = SystemTime::now();
                 // Execute the program
-                execute_program(&program, &url, &method, &parameter);
+                execute_program(&program, &url, &method, &parameter,  &timeout);
 
                 // Wait until the next interval
                 let elapsed_time = start_time.elapsed().unwrap().as_secs();
@@ -31,26 +32,52 @@ fn main() {
     }
 }
 
-fn read_intervals_from_file(filename: &str) -> Result<Vec<(String, String, String, String, u64)>, std::io::Error> {
+fn read_intervals_from_file(filename: &str) -> Result<Vec<(String, String, String, String, u64, u64)>, std::io::Error> {
     let file = File::open(filename)?;
     let reader = BufReader::new(file);
     let mut intervals = vec![];
     for line in reader.lines() {
         let line = line?;
         let parts: Vec<&str> = line.split(',').collect();
-        if parts.len() == 5 {
+        if parts.len() == 6 {
             let program = parts[0].trim().to_string();
             let url = parts[1].trim().to_string();
             let method = parts[2].trim().to_string();
             let parameter = parts[3].trim().to_string();
-            let interval = parts[4].trim().parse().unwrap();
-            intervals.push((program, url, method, parameter, interval));
+            let timeout = parts[4].trim().parse().unwrap();
+            let interval = parts[5].trim().parse().unwrap();
+            intervals.push((program, url, method, parameter, timeout,  interval));
         }
     }
     Ok(intervals)
 }
 
-fn execute_program(program: &String, x: &String, x0: &String, x1: &String) {
-    // Execute the program here
-    println!("Executing program: {}", program);
+fn execute_program(program: &String, url: &String, method: &String, parameter: &String , timeout: &u64) {
+    // If method is GET, perform an HTTP GET request
+    if method.to_uppercase() == "GET" {
+        perform_get_request(url, timeout);
+    }
+    // Otherwise, execute the program here
+    else {
+        println!("Executing program: {} {} {} {} {}", program , url , method , parameter , timeout );
+    }
 }
+
+async fn perform_get_request(url: &String, timeout: &u64) -> Result<(), reqwest::Error> {
+    // Create a new reqwest client
+    let client = reqwest::Client::new();
+
+    // Send an HTTP GET request to the specified URL
+    let response = client
+        .get(url)
+        .timeout(Duration::from_secs(*timeout))
+        .send()
+        .await?;
+
+    // Print out the response body
+    let body = response.text().await?;
+    println!("{}", body);
+
+    Ok(())
+}
+

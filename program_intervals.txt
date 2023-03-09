@@ -1,3 +1,4 @@
-program_A,https://8gwifi.org,GET,,15
-program_B,https://google.com,GET,,30
-program_C,https://fb.com,GET,,45
+program_A,https://8gwifi.org,GET,,10,15
+program_B,https://google.com,GET,,10,30
+program_C,https://fb.com,GET,,10,45
+program_C,https://fb.com,POST,dasdas,10,45
